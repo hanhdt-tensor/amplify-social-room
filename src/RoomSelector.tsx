@@ -1,6 +1,9 @@
 import { Schema } from "../amplify/data/resource"
 import { defaultRoom } from "./utils";
 import { useEffect, useState } from "react";
+import { generateClient } from "aws-amplify/data";
+
+const client = generateClient<Schema>();
 
 export function RoomSelector({
   currentRoomId,
@@ -14,6 +17,12 @@ export function RoomSelector({
   
   useEffect(() => {
     // Add observeQuery code here
+    const sub = client.models.Room.observeQuery().subscribe({
+      next: (result) => {
+        setRooms([defaultRoom, ...result.items])
+      }
+    })
+    return () => sub.unsubscribe()
   }, [])
 
   return <>
@@ -24,6 +33,13 @@ export function RoomSelector({
     </select>
     <button onClick={async () => {
       // Add create Room logic here
+      const newRoomName = window.prompt("Enter new room name")
+      if (!newRoomName) return
+      const { data: room } = await client.models.Room.create({ topic: newRoomName })
+
+      if (room !== null) {
+        onRoomChange(room.id)
+      }
     }}>[+ add]</button>
   </>
 }
